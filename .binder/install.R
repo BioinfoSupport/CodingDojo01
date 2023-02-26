@@ -10,7 +10,7 @@ install.packages(c('tidyverse','tidygraph'))
 install.packages(c('reticulate','Seurat'))
 install.packages(c('bs4Dash', 'reactlog', 'rentrez', 'httr2'))
 install.packages(c('gplots', 'readxl', 'plotly', 'rgl'))
-install.packages(c('rmarkdown','markdown','devtools'))
+install.packages(c('rmarkdown','markdown'))
 
 
 install.packages(c('torch','luz'))
@@ -19,6 +19,7 @@ devtools::install_github("AllenInstitute/cocoframer")
 
 
 # bioconductor packages
+install.packages(c('BiocManager'))
 BiocManager::install(c('ShortReads','Rsamtools','rtracklayer'))
 BiocManager::install(c('S4Vectors','IRanges','GenomicRanges','GenomicFeatures','GenomicAlignments','SummarizedExperiment','GenomicFiles'))
 BiocManager::install(c('Rhdf5lib','rhdf5','HDF5Array'))
