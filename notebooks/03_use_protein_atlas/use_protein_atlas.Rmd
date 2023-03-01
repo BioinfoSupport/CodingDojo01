@@ -1,0 +1,143 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(SummarizedExperiment)
+library(ggplot2)
+```
+
+
+
+
+
+# Download exprimental data from GEO
+```{r,eval=FALSE}
+download.file("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE127696&format=file&file=GSE127696%5FRaw%5Fcounts%2Etxt%2Egz","GSE127696_Raw_counts.txt.gz")
+```
+
+
+
+
+# Load data and parse metadata
+
+```{r}
+load_experimental_data <- function() {
+  # Load experimental data. Tip: use "Import Dataset" in Rstudio panel "Environment", load the downloaded file into object 'x'.
+  n <- read.delim("GSE127696_Raw_counts.txt.gz", row.names=1)
+  n <- data.matrix(n) # convert into a matrix as all columns are numeric
+
+  # Extract metadata from colnames
+  meta <- data.frame(lib=colnames(n))
+  pat <- "([^_]*)_((Flag)?([^_]*))_([^_]*)"
+  meta$patient_id <- factor(sub(pat,"\\1_\\5",meta$lib))
+  meta$patient_state <- factor(sub(pat,"\\1",meta$lib))
+  meta$time <- factor(sub(pat,"\\4",meta$lib),c("NotWounded","24hPostWound","WoundClosure","48hPostWoundClosure"))
+  meta$flageline <- factor(ifelse(sub(pat,"\\3",meta$lib)=="Flag","Yes","No"))
+  meta$condition <- paste(meta$patient_state,meta$time,meta$flageline,sep="_")
+  
+  SummarizedExperiment(list(counts=n),colData=meta)
+}
+
+x <- load_experimental_data()
+```
+
+
+# Normalize expression data per library
+```{r}
+assay(x,"rpm") <- scale(assay(x),center = FALSE,scale = colSums(assay(x))/1e6)
+assay(x,"logrpm") <- log1p(assay(x,"rpm") / log(2))
+x <- x[rowSums(assay(x,"rpm")>=1)>=2,] # require the gene to be expressed in at least 2 library
+
+# Compute PCA projection
+x$pca <- prcomp(t(assay(x,"logrpm")),rank. = 5)$x
+```
+
+
+
+# show an overview of the data content 
+```{r,eval=FALSE}
+# First a heatmap
+local({
+  M <- assay(x,"logrpm")
+  M <- M - rowMeans(M)
+  M[M >= 2] <- 2
+  M[M <= - 2] <- -2
+  heatmap(M,col=RColorBrewer::brewer.pal(11,"PRGn"),scale="none")
+})
+
+# Then the PCA
+colData(x) |>
+  as.data.frame() |>
+  ggplot() + 
+  geom_label(aes(x=pca.PC1,y=pca.PC2,label=patient_id,fill=time),size=3) + 
+  coord_equal() + theme_classic()
+
+# PCA in 3D
+rgl::plot3d(x$pca[,1:3],size=10,col=as.integer(x$patient_state))
+#rgl::text3d(x$pca[,1:3],texts = x$flageline)
+rgl::rglwidget()
+```
+
+
+
+# Determine genes that are moving between two conditions (pairing conditions per patien)
+```{r}
+rowData(x)$median_logFC <- local({
+  x <- x[,order(x$patient_id)]
+  A <- x[,x$condition=="NCF_NotWounded_No"]
+  B <- x[,x$condition=="NCF_24hPostWound_No"]
+  stopifnot(A$patient_id == B$patient_id)
+  rowMedians(assay(B,"logrpm") - assay(A,"logrpm"))
+})
+```
+
+
+# Extract the set of UP/DN genes
+```{r}
+# Genes that are activated upon wounding into Control patients
+UP <- x[rowData(x)$median_logFC > 1,x$condition %in% c("NCF_NotWounded_No","NCF_24hPostWound_No")]
+DN <- x[rowData(x)$median_logFC < -1,x$condition %in% c("NCF_NotWounded_No","NCF_24hPostWound_No")]
+local({
+  M <- assay(UP,"logrpm")
+  M <- M - rowMeans(M)
+  ComplexHeatmap::Heatmap(M,column_split = UP$condition)
+})
+local({
+  M <- assay(DN,"logrpm")
+  M <- M - rowMeans(M)
+  ComplexHeatmap::Heatmap(M,column_split = DN$condition)
+})
+```
+
+
+
+# Download some summary data for Human Protein Atlas
+```{r,eval=FALSE}
+download.file("https://www.proteinatlas.org/download/rna_single_cell_type.tsv.zip","rna_single_cell_type.tsv.zip")
+#download.file("https://www.proteinatlas.org/download/rna_single_cell_type_tissue.tsv.zip","rna_single_cell_type_tissue.tsv.zip")
+```
+
+```{r}
+# Load Human Protein Atlas Data
+A <- read.delim(unz("rna_single_cell_type.tsv.zip","rna_single_cell_type.tsv"))
+A <- tapply(A$nTPM,list(A$Gene,A$Cell.type),mean)
+```
+
+
+```{r}
+fc <- log1p(A) / log(2)
+fc <- t(apply(fc,1,rank))
+
+sort(colMedians(fc[rownames(fc) %in% rownames(UP),],useNames = TRUE),decreasing = TRUE)
+sort(colMedians(fc[rownames(fc) %in% rownames(DN),],useNames = TRUE),decreasing = TRUE)
+```
+
+
+
+
+
+
+# Use regular expression examples
+

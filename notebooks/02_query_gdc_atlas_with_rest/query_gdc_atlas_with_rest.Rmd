@@ -1,0 +1,54 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(ggplot2)
+library(IRanges)
+```
+
+
+
+```{r}
+q <- sprintf(
+  "https://api.gdc.cancer.gov/analysis/survival?filters=%s",
+  URLencode('[
+    {},
+    {"op":"in","content":{"field":"gene.symbol","value":["HVCN1"]}},
+    {"op":"and","content":[
+        {"op":"in","content":{"field":"gene.symbol","value":["HVCN1"]}},
+        {"op":"in","content":{"field":"gene.ssm.consequence.transcript.annotation.vep_impact","value":["LOW"]}}
+    ]},
+    {"op":"and","content":[
+        {"op":"in","content":{"field":"gene.symbol","value":["HVCN1"]}},
+        {"op":"in","content":{"field":"gene.ssm.consequence.transcript.annotation.vep_impact","value":["MODERATE","HIGH"]}}
+    ]}
+  ]')
+)
+q <- jsonlite::fromJSON(q)$results$donors
+names(q) <- c("all","HVCN1","HVCN1-low","HVCN1-moderate/high")
+names(q) <- sprintf("%s n=%d",names(q),sapply(q,nrow))
+```
+
+
+```{r}
+SplitDataFrameList(q) |>
+  stack() |>
+  as.data.frame() |>
+  ggplot(aes(x=time/365,y=survivalEstimate,group=name,color=name)) + 
+    geom_point(size=0.3) + 
+    geom_step(direction="vh") + 
+    theme_classic() +
+    scico::scale_color_scico_d() +
+    xlim(0,5) + ylim(0,1) +
+    xlab("Duration (years)") + ylab("Survival rate") +
+    theme(legend.position = "right")
+```
+
+
+
+
+
+

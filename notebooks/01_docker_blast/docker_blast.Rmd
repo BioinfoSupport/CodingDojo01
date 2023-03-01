@@ -1,0 +1,54 @@
+---
+title: "BLAST"
+output: html_notebook
+---
+
+
+# Introduction
+This notebok show an example usage of docker to perform a blast between two plasmid sequence. 
+
+
+
+# Plasmid Sequence download
+
+We start by downloading the plastmid sequences from NCBI
+```{r}
+download.file("https://www.ncbi.nlm.nih.gov/sviewer/viewer.cgi?tool=portal&save=file&log$=seqview&db=nuccore&report=fasta&id=2163280802&conwithfeat=on&withparts=on&hide-cdd=on&ncbi_phid=null","CP083077.fasta")
+download.file("https://www.ncbi.nlm.nih.gov/sviewer/viewer.cgi?tool=portal&save=file&log$=seqview&db=nuccore&report=fasta&id=359422634&conwithfeat=on&withparts=on&hide-cdd=on&ncbi_phid=null","JN626286.fasta")
+```
+
+
+We call blast through docker, to get help on the available parameters
+```{bash}
+docker run --rm ncbi/blast blastn -help
+```
+
+
+Now we call BLAST to align the two plasmid sequences and generate the alignment regions
+```{bash}
+docker run --rm -v $(pwd):/data ncbi/blast blastn -query /data/CP083077.fasta -subject /data/JN626286.fasta -outfmt 6 -out /data/blast_output.tab
+```
+
+
+
+# Load alignment output in R
+```{r}
+aln <- read.table(
+  "blast_output.tab",sep="\t",
+  col.names = c('qaccver','saccver','pident','length','mismatch','gapopen','qstart','qend','sstart','send','evalue','bitscore')
+)
+```
+
+
+# Display alignment results
+```{r}
+library(ggplot2)
+ggplot(aln) + 
+  geom_segment(aes(x=qstart,xend=qend,y=sstart,yend=send),linewidth=1) + 
+  coord_equal() + xlab("query") + ylab("subject")
+```
+
+
+
+
+

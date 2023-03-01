@@ -1,0 +1,142 @@
+---
+title: "Code dojo"
+output: html_notebook
+---
+
+
+
+
+
+
+
+# Scalar types
+```{r}
+TRUE # logical
+1 # numeric
+"abc" # character
+```
+
+# Variable assignment
+```{r}
+v <- "hello world"
+```
+
+
+
+# Special values
+```{r}
+NA # Missing value (Not Available)
+
+# Special numbers
++Inf # = 1/0
+-Inf # = -1/0
+NaN # = 0/0
+
+# empty string
+""
+
+NULL
+```
+
+
+# Vectors
+
+In R you only manipulate vectors: => every object has a length
+A scalar is a vector of length 1.
+
+## Vector creation
+```{r}
+c("a","b","c") # this is character vector
+1:10 # this is an integer vector
+c(1,5,7) # this is a numeric vector
+
+rep(c("a","b"),10) # by repeating values 
+rep(c("a","b"),each=10) # by repeating each value
+seq(from=1,to=10,by=0.1) # produce a sequence with constant intervals
+seq(from=1,to=10,length.out=50) # produce a sequence of a given length
+
+# 0-length vectors
+numeric(0)
+integer(0)
+character(0)
+logical(0)
+```
+
+
+## Operators
+```{r}
+c(1,5,7) + 2
+1:10 + c(2,5) # Value are re-cycled
+1:30 %% 2 == 0 # Test if pair
+```
+
+
+
+
+
+## Subsetting
+```{r}
+l_unnamed <- list(1:10,c("a","b","c"),c(TRUE,FALSE)) # create an unnamed list
+l_named <- list(Element1=1:10,val2=c("a","b","c"),last_val=c(TRUE,FALSE)) # create a named list
+
+# subsetting
+l_unnamed[1:2]
+l_unnamed[c(TRUE,TRUE,FALSE)]
+l_unnamed[1]
+l_named[c("Element1","val2")]
+
+# accessing
+l_unnamed[[1]]
+l_unnamed[[3]]
+l_named[["Element1"]]
+l_named$Element1
+```
+
+## Subset assignment
+```{r}
+x <- 1:10
+x[1:4] <- 5 # by indexing
+x[x%%2==0] <- NA # with a logical
+x[1:4] <- c(5,8) # also with recycling
+```
+
+
+
+
+
+# help
+```{r}
+?seq
+help("c")
+help.search("sequence")
+help(package="base")
+```
+
+
+
+
+# Functions and environments
+```{r}
+f <- function(x) {
+  return(x+3)
+}
+
+x <- 5
+f(3)
+x
+```
+
+
+
+# Attributes
+```{r}
+m <- matrix(runif(5*3),5,3) # create a random matrix
+m
+attributes(m)
+attributes(m) <- NULL
+```
+
+
+
+
+

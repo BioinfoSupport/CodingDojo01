@@ -1,16 +1,16 @@
 
 
 
-install.packages(c('Matrix','igraph','reshape2','Rcpp','devtools'))
-install.packages(c('Matrix','curl','XML','rjson','jsonlite','readxl','rhdf5','igraph','reshape2','Rcpp','devtools'))
-install.packages(c('LowRankQP','bmrm','limma'))
+install.packages(c('Matrix','igraph','reshape2','Rcpp','devtools','curl'))
+install.packages(c('XML','rjson','jsonlite','readxl','rhdf5'))
+install.packages(c('LowRankQP','bmrm','limma','randomForest','e1071','FNN'))
 install.packages(c('scales','RColorBrewer','wesanderson','scico'))
 install.packages(c('ggplot2','patchwork','ggrepel','ggraph','ggnewscale'))
 install.packages(c('jpeg','png','ggpubr'))
 install.packages(c('irlba', 'umap', 'Rtsne'))
 install.packages(c('tidyverse','tidygraph'))
 install.packages(c('reticulate','Seurat'))
-install.packages(c('bs4Dash', 'reactlog', 'rentrez', 'httr2'))
+install.packages(c('bs4Dash', 'shinydashboard', 'reactlog', 'rentrez', 'httr2'))
 install.packages(c('gplots', 'plotly', 'rgl'))
 install.packages(c('rmarkdown','markdown'))
 
