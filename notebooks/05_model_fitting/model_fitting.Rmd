@@ -1,0 +1,124 @@
+---
+title: "Model fitting"
+output: html_notebook
+---
+
+
+
+
+```{r}
+set.seed(6543210)
+trn <- readRDS("allen_subclass_trn.rds")
+i <- sample(length(trn$y),1000)
+trn$y <- factor(sub("--- .*$","",trn$y)[i])
+trn$x <- as.matrix(trn$x[i,sample(ncol(trn$x),1000)])
+saveRDS(trn,"allen_class_trn_reduced.rds")
+
+val <- readRDS("allen_subclass_val.rds")
+val$x <- val$x[,colnames(trn$x)]
+val$x <- as.matrix(val$x)
+val$y <- factor(sub("--- .*$","",val$y))
+saveRDS(val,"allen_class_val_reduced.rds")
+```
+
+
+
+
+```{r}
+trn <- readRDS("allen_class_trn_reduced.rds")
+rf_model <- randomForest::randomForest(trn$x,trn$y)
+rf_model
+```
+
+```{r}
+val <- readRDS("allen_class_val_reduced.rds")
+table(val$y,predict(rf_model,val$x))
+```
+
+```{r}
+library(torch)
+library(luz)
+
+trn_ds <- tensor_dataset(
+  x = torch_tensor(trn$x),
+  y = torch_tensor(trn$y),
+)
+
+
+nn <- nn_module(
+  initialize = function() {
+    self$layers <- nn_sequential(
+      nn_dropout(0.2),
+      nn_linear(in_features = 1000,out_features = 60),
+      nn_relu(),
+      nn_linear(in_features = 60,out_features = 60),
+      nn_relu(),
+      nn_linear(in_features = 60,out_features = 3)
+    )
+  },
+  forward = function(x) {
+    self$layers(x)
+  }
+)
+
+model <- nn |>
+  setup(loss=nnf_multi_margin_loss,optimizer = optim_adam) |>
+  #set_opt_hparams(weight_decay=0.3) |>
+  fit(trn_ds, epochs = 20L)
+plot(model)
+trn_pred <- levels(trn$y)[as_array(model$model(trn$x)$max(dim=2)[[2]])]
+table(trn$y,trn_pred)
+
+
+val_pred <- levels(trn$y)[as_array(model$model(val$x)$max(dim=2)[[2]])]
+table(val$y,val_pred)
+```
+
+```{r}
+ae <- nn_module(
+  initialize = function() {
+    self$encoder <- nn_sequential(
+      nn_dropout(0.2),
+      nn_linear(in_features = 1000,out_features = 200),
+      nn_relu(),
+      nn_linear(in_features = 200,out_features = 60),
+      nn_relu(),
+      nn_linear(in_features = 60,out_features = 3),
+      nn_tanh()
+    )
+    self$decoder <- nn_sequential(
+      nn_linear(in_features = 3,out_features = 60),
+      nn_relu(),
+      nn_linear(in_features = 60,out_features = 200),
+      nn_relu(),
+      nn_linear(in_features = 200,out_features = 1000)
+    )
+  },
+  forward = function(x) {
+    self$decoder(self$encoder(x))
+  }
+)
+
+trn_ds <- tensor_dataset(
+  x = torch_tensor(trn$x),
+  y = torch_tensor(trn$x),
+)
+
+model <- ae |>
+  setup(loss=nnf_mse_loss,optimizer = optim_adam) |>
+  #set_opt_hparams(weight_decay=0.3) |>
+  fit(trn_ds, epochs = 30L)
+
+
+rgl::clear3d()
+rgl::plot3d(as_array(model$model$encoder(trn$x)),col=as.integer(trn$y))
+rgl::clear3d()
+rgl::plot3d(as_array(model$model$encoder(val$x)),col=as.integer(val$y))
+
+library(ggplot2)
+data.frame(ls=as_array(model$model$encoder(val$x)),target=val$y) |>
+  ggplot() + 
+  geom_point(aes(x=ls.1,y=ls.2,col=target))
+```
+
+

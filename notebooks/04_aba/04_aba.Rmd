@@ -1,0 +1,67 @@
+---
+title: "Allen Brain Atlas"
+output: html_notebook
+---
+
+
+```{r}
+library(HDF5Array)
+library(SingleCellExperiment)
+```
+
+# Download data
+```{bash,eval=FALSE}
+wget https://ftp.ncbi.nlm.nih.gov/geo/series/GSE185nnn/GSE185862/suppl/GSE185862_expression_matrix_10x.hdf5
+wget https://ftp.ncbi.nlm.nih.gov/geo/series/GSE185nnn/GSE185862/suppl/GSE185862_metadata_10x.csv.gz
+```
+
+
+# Investigate H5 content
+```{r}
+h5ls("GSE185862_expression_matrix_10x.hdf5")
+```
+
+
+# Load metadata
+```{r}
+x <- local({
+  meta <- read.csv("GSE185862_metadata_10x.csv.gz",check.names = FALSE,stringsAsFactors = FALSE,row.names=1L)
+  rownames(meta) <- meta$sample_name
+  
+  M <- HDF5Array("GSE185862_expression_matrix_10x.hdf5","data/counts")
+  colnames(M) <- as.character(h5read("GSE185862_expression_matrix_10x.hdf5","data/gene"))
+  rownames(M) <- as.character(h5read("GSE185862_expression_matrix_10x.hdf5","data/samples"))
+  
+  # Check object "alignment"
+  gplots::venn(list(rownames(M),rownames(meta)))
+  M <- M[rownames(M) %in% rownames(meta),]
+  
+  SingleCellExperiment(list(counts=t(M)),colData=meta[match(rownames(M),rownames(meta)),])
+})
+```
+
+
+
+# Query the dataset
+```{r}
+boxplot(counts(x)["Gad1",]~x$class_label)
+```
+
+
+# Make a training set to predict cell-types
+```{r}
+# Split cells into 3 subset (trn/val/tst)
+set.seed(12345L)
+x$mlset <- sample(factor(c("trn","val","tst"),c("trn","val","tst")),size = ncol(x),replace = TRUE,prob = c(0.7,0.15,0.15))
+x$y_true <- x$class_label
+```
+
+
+```{r}
+table(x$y_true,x$mlset)
+```
+
+
+
+
+
