@@ -6,20 +6,6 @@ output: html_notebook
 
 
 
-```{r}
-set.seed(6543210)
-trn <- readRDS("allen_subclass_trn.rds")
-i <- sample(length(trn$y),1000)
-trn$y <- factor(sub("--- .*$","",trn$y)[i])
-trn$x <- as.matrix(trn$x[i,sample(ncol(trn$x),1000)])
-saveRDS(trn,"allen_class_trn_reduced.rds")
-
-val <- readRDS("allen_subclass_val.rds")
-val$x <- val$x[,colnames(trn$x)]
-val$x <- as.matrix(val$x)
-val$y <- factor(sub("--- .*$","",val$y))
-saveRDS(val,"allen_class_val_reduced.rds")
-```
 
 
 
